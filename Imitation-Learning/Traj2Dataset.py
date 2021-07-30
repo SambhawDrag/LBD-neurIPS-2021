@@ -1,4 +1,4 @@
-from typing import Any,Tuple
+from typing import Any, Tuple, List
 import torch.utils.data as data
 import numpy as np
 import json
@@ -6,6 +6,9 @@ import os
 
 
 class TrajDataset(data.Dataset):
+    """
+        Custom Dataset class for loading trajectory state-action for Behavior Cloning
+    """
 
     def __init__(
         self,
@@ -14,6 +17,15 @@ class TrajDataset(data.Dataset):
         transform=None,
         target_transform=None
     ):
+        """
+
+        Args:
+            system : Name of the system (e.g. "great-bipedal-bumblee")
+            root_dir : Root directory of the dataset (json files)
+            transform : Input transforms. Defaults to None.
+            target_transform : Target transforms. Defaults to None.
+        """
+
         self.system: str = system
         self.root_dir: str = root_dir
         self.transform = transform
@@ -24,8 +36,8 @@ class TrajDataset(data.Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
 
-        states = np.array(self.data[idx+1]['state'])
-        actions = np.array(self.data[idx+1]['action'])
+        states = np.array(self.data[idx+1]['state'], dtype=np.float32)
+        actions = np.array(self.data[idx+1]['action'], dtype=np.float32)
 
         if self.transform:
             states = self.transform(states)
@@ -37,6 +49,14 @@ class TrajDataset(data.Dataset):
 
     def __len__(self) -> int:
         return self.data[0]['Length']
+
+    @property
+    def states(self) -> List[str]:
+        return self.data[0]['States']
+
+    @property
+    def actions(self) -> List[str]:
+        return self.data[0]['Actions']
 
 
 def test_dataset() -> None:
