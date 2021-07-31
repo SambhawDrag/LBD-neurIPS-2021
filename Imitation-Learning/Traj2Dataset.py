@@ -1,5 +1,4 @@
 from typing import Any, Tuple, List
-from numpy.core.defchararray import translate
 import torch.utils.data as data
 import numpy as np
 import json
@@ -15,6 +14,7 @@ class TrajDataset(data.Dataset):
         self,
         system: str,
         root_dir: str,
+        train: bool = True,
         transform=None,
         target_transform=None
     ):
@@ -31,8 +31,16 @@ class TrajDataset(data.Dataset):
         self.root_dir: str = root_dir
         self._transform = transform
         self._target_transform = target_transform
+        self.train = train  # train or test set
 
-        with open(os.path.join(root_dir, f'{system}.json')) as f:
+        if self.train:
+            self.data_file = os.path.join(
+                self.root_dir, f"train/{system}.json")
+        else:
+            self.data_file = os.path.join(
+                self.root_dir, f"test/{system}.json")
+
+        with open(self.data_file) as f:
             self.data = json.load(f)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
@@ -94,29 +102,39 @@ def test_dataset() -> None:
 
     root_dir = 'dataset'
     system = 'great-piquant-bumblebee'
-    dataset = TrajDataset(system, root_dir)
+    train_dataset = TrajDataset(system, root_dir, train=True)
 
-    mean = [x['mean'] for x in dataset.states]  # mean
-    std = [x['std'] for x in dataset.states]   # std_dev
+    mean = [x['mean'] for x in train_dataset.states]  # mean
+    std = [x['std'] for x in train_dataset.states]   # std_dev
     transform = DatasetTransform(mean, std)
 
-    target_mean = [x['mean'] for x in dataset.actions]  # mean
-    target_std = [x['std'] for x in dataset.actions]   # std_dev
+    target_mean = [x['mean'] for x in train_dataset.actions]  # mean
+    target_std = [x['std'] for x in train_dataset.actions]   # std_dev
     target_transform = DatasetTransform(target_mean, target_std)
 
-    dataset.tranform = transform
-    dataset.target_transform = target_transform
+    train_dataset.tranform = transform
+    train_dataset.target_transform = target_transform
 
-    states, actions = dataset[0]
-    print('Dataset Length: {}'.format(len(dataset)))
+    test_dataset = TrajDataset(system, root_dir, train=False,
+                               transform=transform,
+                               target_transform=target_transform)
 
+    print('\nTraining Dataset Length: {}'.format(len(train_dataset)))
     from torch.utils.data import dataloader
-    dataloader = dataloader.DataLoader(
-        dataset, batch_size=32, shuffle=True, num_workers=0)
+    train_dataloader = dataloader.DataLoader(
+        train_dataset, batch_size=8, shuffle=True, num_workers=0)
 
-    states, actions = next(iter(dataloader))
-    print(f'Random Sample: State: {states}')
-    print(f'Action: {actions}')
+    states, actions = next(iter(train_dataloader))
+    print(f'sample state: {states}')
+    print(f'sample action: {actions}')
+
+    print('\nTest Dataset Length: {}'.format(len(test_dataset)))
+    test_dataloader = dataloader.DataLoader(
+        test_dataset, batch_size=8, shuffle=True, num_workers=0)
+
+    states, actions = next(iter(test_dataloader))
+    print(f'sample state: {states}')
+    print(f'sample action: {actions}')
 
 
 if __name__ == '__main__':

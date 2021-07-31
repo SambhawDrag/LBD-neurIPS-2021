@@ -22,6 +22,9 @@ class Traj2JSON():
         self.root_dir = root_dir
         self.traj_files: List[str] = glob.glob(
             os.path.join(root_dir, f'*{system}*.csv'))
+        # use last trajectory-file for testing
+        self.test_traj_files = [self.traj_files[-1]]
+        self.traj_files = self.traj_files[:-1]
 
         self.states = None
         self.state_norms = None
@@ -31,11 +34,12 @@ class Traj2JSON():
 
         self.targets = ['X', 'Y']
         self.traj: list = []
+        self.test_traj: list = []
         self.metainfo = None
-
-        ...
+        self.test_metainfo = None
 
     def read(self):
+        # Read all training trajectory files
         for i, traj_file in enumerate(self.traj_files):
             df = pd.read_csv(traj_file, delimiter=',')
 
@@ -52,13 +56,13 @@ class Traj2JSON():
             if not self.metainfo:
                 self.metainfo = {'System': self.system,
                                  'States': self.states + ['Xt', 'Yt'],
-                                 'Actions': self.actions}
+                                 'Actions': self.actions.copy()}
                 self.traj.append(self.metainfo)
 
-            for i in range(len(df)-1):
-                state = df.iloc[i][self.states].to_list()
-                action = df.iloc[i][self.actions].to_list()
-                state.extend(df.iloc[i+1][self.targets].to_list())
+            for x in range(len(df)-1):
+                state = df.iloc[x][self.states].to_list()
+                action = df.iloc[x][self.actions].to_list()
+                state.extend(df.iloc[x+1][self.targets].to_list())
 
                 self.traj.append({
                     "state": state,
@@ -84,7 +88,7 @@ class Traj2JSON():
         # append length in meta info
         self.traj[0]['Length'] = len(self.traj)-1  # -1 for meta info
 
-        # print(self.state_norms, self.action_norms)
+        # Add mean and std_dev to state-meta info
         for i, state in enumerate(self.traj[0]['States']):
             if state in ['Xt', 'Yt']:
                 # same mean and std_dev as X,Y (may change later as Xt,Yt are 1 timestep ahead)
@@ -101,7 +105,7 @@ class Traj2JSON():
                     'mean': self.state_norms[i, 0],
                     'std': self.state_norms[i, 1]
                 }
-
+        # Add mean and std_dev to action-meta info
         for i, action in enumerate(self.traj[0]['Actions']):
             self.traj[0]['Actions'][i] = {
                 'Name': action,
@@ -109,22 +113,49 @@ class Traj2JSON():
                 'std': self.action_norms[i, 1]
             }
 
+        # Read test_file and store in test_trajectory
+        for traj_file in self.test_traj_files:
+
+            df = pd.read_csv(traj_file, delimiter=',')
+
+            if not self.test_metainfo:
+                self.test_metainfo = {'System': self.system,
+                                      'States': self.states + ['Xt', 'Yt'],
+                                      'Actions': self.actions.copy()}
+                self.test_traj.append(self.test_metainfo)
+
+            for i in range(len(df)-1):
+                state = df.iloc[i][self.states].to_list()
+                state.extend(df.iloc[i+1][self.targets].to_list())
+                action = df.iloc[i][self.actions].to_list()
+
+                self.test_traj.append({
+                    "state": state,
+                    "action": action
+                })
+
+        self.test_traj[0]['Length'] = len(self.test_traj)-1  # -1 for meta info
+
     def isState(self, x):
         return re.match(r'd?X\d?|d?Y\d?', x)
 
     def isAction(self, x):
         return re.match(r'U\d', x)
 
-    def write(self, filename):
+    def write(self, filename, test_filename):
         with open(filename, 'w') as f:
             json.dump(self.traj, f)
+
+        with open(test_filename, 'w') as f:
+            json.dump(self.test_traj, f)
 
 
 def main(systems):
     for system in tqdm(systems, desc='Converting to JSON ...'):
         traj = Traj2JSON(system, '../traj_data')
         traj.read()
-        traj.write(f'dataset/{system}.json')
+        traj.write(f'dataset/train/{system}.json',
+                   f'dataset/test/{system}.json')
 
 
 if __name__ == "__main__":
