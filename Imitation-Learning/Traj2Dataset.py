@@ -1,4 +1,5 @@
 from typing import Any, Tuple, List
+from numpy.core.defchararray import translate
 import torch.utils.data as data
 import numpy as np
 import json
@@ -28,8 +29,8 @@ class TrajDataset(data.Dataset):
 
         self.system: str = system
         self.root_dir: str = root_dir
-        self.transform = transform
-        self.target_transform = target_transform
+        self._transform = transform
+        self._target_transform = target_transform
 
         with open(os.path.join(root_dir, f'{system}.json')) as f:
             self.data = json.load(f)
@@ -58,6 +59,36 @@ class TrajDataset(data.Dataset):
     def actions(self) -> List[str]:
         return self.data[0]['Actions']
 
+    @property
+    def transform(self) -> None:
+        return self._transform
+
+    @property
+    def target_transform(self) -> None:
+        return self._target_transform
+
+    @transform.setter
+    def transform(self, transform: Any) -> None:
+        self._transform = transform
+
+    @target_transform.setter
+    def target_transform(self, transform: Any) -> None:
+        self._target_transform = transform
+
+
+class DatasetTransform():
+    def __init__(self, mean, std_dev) -> None:
+        if not isinstance(mean, np.ndarray):
+            mean = np.array(mean, dtype=np.float32)
+        if not isinstance(std_dev, np.ndarray):
+            std_dev = np.array(std_dev, dtype=np.float32)
+
+        self.mean = mean
+        self.std_dev = std_dev
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        return (x - self.mean) / (self.std_dev + 1e-9)  # for 0.00
+
 
 def test_dataset() -> None:
 
@@ -65,15 +96,27 @@ def test_dataset() -> None:
     system = 'great-piquant-bumblebee'
     dataset = TrajDataset(system, root_dir)
 
+    mean = [x['mean'] for x in dataset.states]  # mean
+    std = [x['std'] for x in dataset.states]   # std_dev
+    transform = DatasetTransform(mean, std)
+
+    target_mean = [x['mean'] for x in dataset.actions]  # mean
+    target_std = [x['std'] for x in dataset.actions]   # std_dev
+    target_transform = DatasetTransform(target_mean, target_std)
+
+    dataset.tranform = transform
+    dataset.target_transform = target_transform
+
     states, actions = dataset[0]
     print('Dataset Length: {}'.format(len(dataset)))
 
     from torch.utils.data import dataloader
     dataloader = dataloader.DataLoader(
-        dataset, batch_size=8, shuffle=True, num_workers=0)
+        dataset, batch_size=32, shuffle=True, num_workers=0)
 
     states, actions = next(iter(dataloader))
-    print(f'Random Sample: State: {states}, Action: {actions}')
+    print(f'Random Sample: State: {states}')
+    print(f'Action: {actions}')
 
 
 if __name__ == '__main__':
