@@ -3,6 +3,9 @@ Controller template.
 """
 
 import numpy as np
+from metadata import model_dict
+from model import Net
+import torch
 
 
 class controller(object):
@@ -22,6 +25,9 @@ class controller(object):
         """
         self.system = system
         self.d_control = d_control
+        self.model = Net(model_dict[self.system]['dim'][0],model_dict[self.system]['dim'][1])
+        self.model_path = 'models/' + model_dict[self.system]['path']
+        self.model.load_state_dict(torch.load(self.model_path))
 
     def get_input(self, state, position, target):
         """
@@ -41,5 +47,6 @@ class controller(object):
                      coordinates of the next steps target position
         """
         # placeholder that just returns a next control input of correct shape
-        inp = np.random.randn(self.d_control, 2).dot(target - position)
-        return inp
+        inp = np.concatenate((state, target), dtype=np.float32)
+        return self.model(torch.Tensor(inp)).numpy()
+ 
