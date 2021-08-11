@@ -59,7 +59,7 @@ def create_dataloaders(
 
 def main(args: argparse.Namespace):
     checkpoint_callback = ModelCheckpoint(
-        dirpath=f"{args.logdir}/model", monitor='val_loss',
+        dirpath=f"{args.save_dir}/", monitor='val_loss',
         filename=f"{args.system}" + "-{epoch:02d}",
         period=1,
         save_last=True)
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument('--logdir', type=str, default='./logs')
     parser.add_argument('--val-split', type=str, default=0.1)
     parser.add_argument('--gpus', type=int, default=1)
+    parser.add_argument('--save_dir', type=str, default='./models')
 
     args = parser.parse_args()
     main(args)
