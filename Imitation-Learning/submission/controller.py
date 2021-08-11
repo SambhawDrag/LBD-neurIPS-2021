@@ -3,12 +3,17 @@ Controller template.
 """
 
 import numpy as np
-from metadata import model_dict
 from model import Net
 import torch
+import json
+import os
 
 
 class controller(object):
+
+    root_dir = os.path.dirname(__file__)  # root_dir for loading metadata
+    metadata = json.load(
+        open(os.path.join(root_dir, 'metadata.json')))
 
     def __init__(self, system, d_control):
         """
@@ -25,9 +30,26 @@ class controller(object):
         """
         self.system = system
         self.d_control = d_control
-        self.model = Net(model_dict[self.system]['dim'][0],model_dict[self.system]['dim'][1])
-        self.model_path = 'models/' + model_dict[self.system]['path']
-        self.model.load_state_dict(torch.load(self.model_path))
+        self.__metadata = controller.metadata[system]
+
+        self.state_norms = (self.__metadata['state_norms'])
+        self.action_norms = (self.__metadata['action_norms'])
+
+        self.state_mean = np.array(
+            [x[0] for x in self.state_norms], dtype=np.float32)
+        self.state_std = np.array(
+            [x[1] for x in self.state_norms], dtype=np.float32)
+
+        self.action_mean = np.array(
+            [x[0] for x in self.action_norms], dtype=np.float32)
+        self.action_std = np.array(
+            [x[1] for x in self.action_norms], dtype=np.float32)
+
+        self.model = Net(*self.__metadata['dim'])
+        path = os.path.join(self.root_dir, "models", self.__metadata['path'])
+
+        self.model.load_state_dict(torch.load(path))
+        self.model.eval()
 
     def get_input(self, state, position, target):
         """
@@ -47,6 +69,22 @@ class controller(object):
                      coordinates of the next steps target position
         """
         # placeholder that just returns a next control input of correct shape
-        inp = np.concatenate((state, target), dtype=np.float32)
-        return self.model(torch.Tensor(inp)).numpy()
- 
+        inp = np.concatenate((state, target)).astype(np.float32)
+        inp = (inp - self.state_mean) / (self.state_std + 1e-6)
+
+        out = self.model(torch.from_numpy(inp)).detach().numpy()
+        out = (out * (self.action_std + 1e-6)) + self.action_mean
+        return out
+
+
+def test():
+    ctrl = controller(system='great-piquant-bumblebee', d_control=2)
+    print(ctrl.get_input(
+        np.random.random(8),
+        np.random.random(2),
+        np.random.random(2)
+    ))
+
+
+if __name__ == "__main__":
+    test()
