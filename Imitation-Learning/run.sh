@@ -34,12 +34,13 @@ SEED=11
 GPUS=1
 SAVE_DIR="./models"
 ROOT_DIR="./dataset"
+NUM_WORKERS=4
 
 while [[ $# -gt 0 ]]; do
     key="$1"
 
     case $key in
-    -b | --BATCH_SIZE)
+    -b | --batch_size)
         if [ -z "$2" ]; then
             echo "Missing argument for $key"
             exit 0
@@ -79,7 +80,7 @@ while [[ $# -gt 0 ]]; do
         SEED="$2"
         shift # past argument
         ;;
-    --SAVE_DIR)
+    --save_dir)
         if [ -z "$2" ]; then
             echo "Missing argument for $key"
             exit 0
@@ -87,13 +88,21 @@ while [[ $# -gt 0 ]]; do
         SAVE_DIR="$2"
         shift # past argument
         ;;
-    --ROOT_DIR)
+    --root_dir)
         if [ -z "$2" ]; then
             echo "Missing argument for $key"
             exit 0
         fi
         ROOT_DIR="$2"
         shift # past argument
+        ;;
+    --num_workers)
+        if [ -z "$2" ]; then
+            echo "Missing argument for $key"
+            exit 0
+        fi
+        NUM_WORKERS="$2"
+        shift
         ;;
     *)        # unknown option
         shift # past argument
@@ -102,7 +111,7 @@ while [[ $# -gt 0 ]]; do
     shift # past value
 done
 
-opt="${opt} --batch-size ${BATCH_SIZE} --lr ${LR} --epochs ${EPOCHS} --seed ${SEED} --gpus ${GPUS} --save-dir ${SAVE_DIR} --root-dir ${ROOT_DIR}"
+opt="${opt} --batch-size ${BATCH_SIZE} --lr ${LR} --epochs ${EPOCHS} --seed ${SEED} --gpus ${GPUS} --save-dir ${SAVE_DIR} --root-dir ${ROOT_DIR} --num-workers ${NUM_WORKERS}"
 
 for i in "${arr[@]}"; do
     echo "Running system $i"
