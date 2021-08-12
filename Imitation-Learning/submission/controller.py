@@ -3,7 +3,7 @@ Controller template.
 """
 
 import numpy as np
-from model import Net
+from model import LitMLP as Net
 import torch
 import json
 import os
@@ -45,10 +45,12 @@ class controller(object):
         self.action_std = np.array(
             [x[1] for x in self.action_norms], dtype=np.float32)
 
-        self.model = Net(*self.__metadata['dim'])
+        # self.model = Net(*self.__metadata['dim'])
         path = os.path.join(self.root_dir, "models", self.__metadata['path'])
 
-        self.model.load_state_dict(torch.load(path))
+        # self.model.load_state_dict(torch.load(path))
+        self.model = Net.load_from_checkpoint(
+            path, in_dims=self.__metadata['dim'][0], out_dims=self.__metadata['dim'][1])
         self.model.eval()
 
     def get_input(self, state, position, target):
