@@ -59,10 +59,8 @@ def create_dataloaders(
 
 def main(args: argparse.Namespace):
     checkpoint_callback = ModelCheckpoint(
-        dirpath=f"{args.save_dir}/", monitor='val_loss',
-        filename=f"{args.system}" + "-{epoch:02d}",
-        period=1,
-        save_last=True)
+        dirpath=f"{args.save_dir}/",
+        filename=f"{args.system}")
 
     callbacks = [checkpoint_callback]
     tb_logger = loggers.TensorBoardLogger(args.logdir)
@@ -88,12 +86,12 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--root-dir', type=str, default='./dataset')
     parser.add_argument('--system', type=str, default='great-wine-beetle')
-    parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--logdir', type=str, default='./logs')
     parser.add_argument('--val-split', type=str, default=0.1)
     parser.add_argument('--gpus', type=int, default=1)
-    parser.add_argument('--save_dir', type=str, default='./models')
+    parser.add_argument('--save-dir', type=str, default='./models')
 
     args = parser.parse_args()
     main(args)
