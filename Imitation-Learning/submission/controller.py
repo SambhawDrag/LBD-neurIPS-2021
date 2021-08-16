@@ -71,7 +71,8 @@ class controller(object):
                      coordinates of the next steps target position
         """
         # placeholder that just returns a next control input of correct shape
-        inp = np.concatenate((state, target)).astype(np.float32)
+        inp = np.concatenate((state, target), axis=0).astype(
+            np.float32).flatten()
         inp = (inp - self.state_mean) / (self.state_std + 1e-6)
 
         out = self.model(torch.from_numpy(inp)).detach().numpy()
@@ -81,10 +82,11 @@ class controller(object):
 
 def test():
     ctrl = controller(system='great-piquant-bumblebee', d_control=2)
+    ## input provided as a vector of shape (X,1)
     print(ctrl.get_input(
-        np.random.random(8),
-        np.random.random(2),
-        np.random.random(2)
+        np.random.randn(8,1),
+        np.random.randn(2,1),
+        np.random.randn(2,1)
     ))
 
 
