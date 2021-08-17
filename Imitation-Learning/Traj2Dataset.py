@@ -6,6 +6,10 @@ import os
 
 
 class TrajDataset(data.Dataset):
+
+    curr_dir = os.path.dirname(__file__)
+    metadata = json.load(
+        open(os.path.join(curr_dir, 'dataset', 'metadata.json')))
     """
         Custom Dataset class for loading trajectory state-action for Behavior Cloning
     """
@@ -35,10 +39,10 @@ class TrajDataset(data.Dataset):
 
         if self.train:
             self.data_file = os.path.join(
-                self.root_dir, f"train/{system}.json")
+                self.root_dir, "train", f"{system}.json")
         else:
             self.data_file = os.path.join(
-                self.root_dir, f"test/{system}.json")
+                self.root_dir, "test", f"{system}.json")
 
         with open(self.data_file) as f:
             self.data = json.load(f)
@@ -83,6 +87,15 @@ class TrajDataset(data.Dataset):
     def target_transform(self, transform: Any) -> None:
         self._target_transform = transform
 
+    @staticmethod
+    def norms(system: str) -> Tuple[np.ndarray, np.ndarray]:
+        state_norm = np.array(
+            TrajDataset.metadata[system]['state_norms'], dtype=np.float32)
+        action_norm = np.array(
+            TrajDataset.metadata[system]['action_norms'], dtype=np.float32)
+
+        return state_norm, action_norm
+
 
 class DatasetTransform():
     def __init__(self, mean, std_dev) -> None:
@@ -100,17 +113,19 @@ class DatasetTransform():
 
 def test_dataset() -> None:
 
-    root_dir = 'dataset'
+    root_dir = os.path.join(os.path.dirname(__file__), 'dataset')
     system = 'great-piquant-bumblebee'
     train_dataset = TrajDataset(system, root_dir, train=True)
 
-    mean = [x['mean'] for x in train_dataset.states]  # mean
-    std = [x['std'] for x in train_dataset.states]   # std_dev
-    transform = DatasetTransform(mean, std)
+    state_norms, action_norms = TrajDataset.norms(system)
 
-    target_mean = [x['mean'] for x in train_dataset.actions]  # mean
-    target_std = [x['std'] for x in train_dataset.actions]   # std_dev
-    target_transform = DatasetTransform(target_mean, target_std)
+    mean = state_norms[:, 0]
+    std_dev = state_norms[:, 1]
+    transform = DatasetTransform(mean, std_dev)
+
+    target_mean = action_norms[:, 0]
+    target_std_dev = action_norms[:, 1]
+    target_transform = DatasetTransform(target_mean, target_std_dev)
 
     train_dataset.tranform = transform
     train_dataset.target_transform = target_transform

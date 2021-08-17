@@ -46,11 +46,11 @@ class controller(object):
             [x[1] for x in self.action_norms], dtype=np.float32)
 
         # self.model = Net(*self.__metadata['dim'])
-        path = os.path.join(self.root_dir, "models", self.__metadata['path'])
+        path = os.path.join(self.root_dir, "models", f"{system}-v1.ckpt")
 
         # self.model.load_state_dict(torch.load(path))
         self.model = Net.load_from_checkpoint(
-            path, in_dims=self.__metadata['dim'][0], out_dims=self.__metadata['dim'][1])
+            path, in_dims=self.__metadata['dims'][0], out_dims=self.__metadata['dims'][1])
         self.model.eval()
 
     def get_input(self, state, position, target):
@@ -82,11 +82,11 @@ class controller(object):
 
 def test():
     ctrl = controller(system='great-piquant-bumblebee', d_control=2)
-    ## input provided as a vector of shape (X,1)
+    # input provided as a vector of shape (X,1)
     print(ctrl.get_input(
-        np.random.randn(8,1),
-        np.random.randn(2,1),
-        np.random.randn(2,1)
+        np.random.randn(8, 1),
+        np.random.randn(2, 1),
+        np.random.randn(2, 1)
     ))
 
 

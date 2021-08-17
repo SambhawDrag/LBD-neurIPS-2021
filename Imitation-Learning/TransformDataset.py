@@ -150,12 +150,43 @@ class Traj2JSON():
             json.dump(self.test_traj, f)
 
 
+class Metadata():
+    def __init__(self, systems, root_dir):
+        self.systems = systems
+        self.root_dir = root_dir
+        self.metadata = {}
+
+    def create(self):
+        for system in self.systems:
+            with open(os.path.join(self.root_dir, f"{system}.json")) as f:
+                metadata = json.load(f)[0]
+                name = metadata['System']
+                state_norms = [(x['mean'], x['std'])
+                               for x in metadata['States']]
+                action_norms = [(x['mean'], x['std'])
+                                for x in metadata['Actions']]
+                dims = (len(metadata['States']), len(metadata['Actions']))
+                self.metadata[name] = {
+                    'state_norms': state_norms,
+                    'action_norms': action_norms,
+                    'dims': dims
+                }
+
+    def write(self, filename):
+        with open(filename, 'w') as f:
+            json.dump(self.metadata, f)
+
+
 def main(systems):
     for system in tqdm(systems, desc='Converting to JSON ...'):
-        traj = Traj2JSON(system, '../traj_data')
+        traj = Traj2JSON(system, os.path.join(
+            os.path.dirname(__file__), '../traj_data'))
         traj.read()
         traj.write(f'dataset/train/{system}.json',
                    f'dataset/test/{system}.json')
+    metadata = Metadata(systems, "dataset/train")
+    metadata.create()
+    metadata.write(f'dataset/metadata.json')
 
 
 if __name__ == "__main__":
