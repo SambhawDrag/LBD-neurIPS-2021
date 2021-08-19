@@ -19,15 +19,16 @@ def create_dataloaders(
         and the third element as a tuple of state and action dimensions
     """
     train_dataset = TrajDataset(args.system, args.root_dir, train=True)
+    state_norms, action_norms = TrajDataset.norms(args.system)
 
     state_dim = len(train_dataset.states)
     action_dim = len(train_dataset.actions)
 
-    mean = [x['mean'] for x in train_dataset.states]  # mean
-    std = [x['std'] for x in train_dataset.states]   # std_dev
+    mean = state_norms[:, 0]  # mean
+    std = state_norms[:, 1]  # std_dev
     transform = DatasetTransform(mean, std)
-    target_mean = [x['mean'] for x in train_dataset.actions]  # mean
-    target_std = [x['std'] for x in train_dataset.actions]   # std_dev
+    target_mean = action_norms[:, 0]  # mean
+    target_std = action_norms[:, 1]  # std_dev
     target_transform = DatasetTransform(target_mean, target_std)
 
     train_dataset.tranform = transform
