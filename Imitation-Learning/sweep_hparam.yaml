@@ -1,0 +1,25 @@
+program: Experiment.py
+method: random
+metric:
+  goal: minimize
+  name: loss
+parameters:
+  layer_one:
+    values: [16, 32]
+  layer_two:
+    values: [32, 64, 128]
+  layer_three:
+    values: [32, 64, 128]
+  layer_four:
+    values: [32, 64, 128]
+  layer_five:
+    values: [16, 32]
+  learning_rate:
+    values: [0.001, 0.005, 0.0005]
+  epochs:
+    value: 50
+early_terminate:
+  type: hyperband
+  s: 2
+  eta: 3
+  max_iter: 27

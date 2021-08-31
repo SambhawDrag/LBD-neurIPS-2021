@@ -4,22 +4,26 @@ import pytorch_lightning as pl
 from typing import Any
 import torch.nn.functional as F
 
+import os
+import wandb
+#import torch
+
 
 class Net(nn.Module):
-    def __init__(self, in_dims, out_dims):
+    def __init__(self, in_dims, out_dims, layer_1, layer_2, layer_3, layer_4, layer_5):
         super(Net, self).__init__()
         self.layers = nn.Sequential(
-            nn.Linear(in_dims, 16),
+            nn.Linear(in_dims, layer_1),
             nn.ReLU(),
-            nn.Linear(16, 32),
+            nn.Linear(layer_1, layer_2),
             nn.ReLU(),
-            nn.Linear(32, 64),
+            nn.Linear(layer_2, layer_3),
             nn.ReLU(),
-            nn.Linear(64, 32),
+            nn.Linear(layer_3, layer_4),
             nn.ReLU(),
-            nn.Linear(32, 16),
+            nn.Linear(layer_4, layer_5),
             nn.ReLU(),
-            nn.Linear(16, out_dims)
+            nn.Linear(layer_5, out_dims)
         )
 
     def forward(self, x):
@@ -31,13 +35,18 @@ class LitMLP(pl.LightningModule):
         self,
         in_dims: int,
         out_dims: int,
+        layer_1: int,
+        layer_2: int,
+        layer_3: int,
+        layer_4: int,
+        layer_5: int,
         lr: float = 1e-3,
         *args: Any,
         **kwargs: Any
     ) -> None:
         super().__init__(*args, **kwargs)
 
-        self.model = Net(in_dims, out_dims)
+        self.model = Net(in_dims, out_dims, layer_1, layer_2, layer_3, layer_4, layer_5)
         self.lr = lr
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
